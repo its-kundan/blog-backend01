@@ -1,18 +1,29 @@
-import express from 'express';
+import express from "express";
 import {
-  getAllPosts,
-  getPostById,
   createPost,
+  getAllPosts,
+  getPostBySlug,
   updatePost,
-  deletePost
-} from '../controllers/postController';
+  deletePost,
+} from "../controllers/postController";
+import { verifyToken, isAdmin } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.get('/', getAllPosts);
-router.get('/:id', getPostById);
-router.post('/', createPost);
-router.put('/:id', updatePost);
-router.delete('/:id', deletePost);
+router.post("/", verifyToken, isAdmin, (req, res) => {
+  createPost(req, res).then().catch(err => console.error(err));
+});
+router.get("/", (req, res) => {
+  getAllPosts(req, res).then().catch(err => console.error(err));
+});
+router.get("/:slug", (req, res) => {
+  getPostBySlug(req, res).then().catch(err => console.error(err));
+});
+router.put("/:id", verifyToken, isAdmin, (req, res) => {
+  updatePost(req, res).then().catch(err => console.error(err));
+});
+router.delete("/:id", verifyToken, isAdmin, (req, res) => {
+  deletePost(req, res).then().catch(err => console.error(err));
+});
 
 export default router;

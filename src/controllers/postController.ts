@@ -1,61 +1,81 @@
-import { Request, Response } from 'express';
-import { Post } from '../models/post'; // ✅ ensure correct casing in both file and import
+// controllers/postController.ts
+import { Request, Response } from "express";
+import { Post } from "../models/post";
+import { slugify } from "../utils/slugify";
+import { markdownToHtml } from "../utils/markdownToHtml";
+import { calculateReadTime } from "../utils/readTime";
 
-export const getAllPosts = async (req: Request, res: Response): Promise<void> => {
+interface CustomRequest extends Request {
+  user?: { id: string; role: string; username: string };
+}
+
+export const createPost = async (req: CustomRequest, res: Response) => {
   try {
-    const posts = await Post.find();
+    const { title, content, coverImage, tags, status } = req.body;
+    const slug = slugify(title);
+    const htmlContent = await markdownToHtml(content);
+    const readTime = calculateReadTime(content);
+
+    const newPost = new Post({
+      title,
+      slug,
+      content,
+      htmlContent,
+      coverImage,
+      tags,
+      readTime,
+      author: req.user?.id,
+      status,
+    });
+
+    await newPost.save();
+    res.status(201).json(newPost);
+  } catch (err) {
+    res.status(500).json({ error: "Post creation failed", details: err });
+  }
+};
+
+export const getAllPosts = async (req: Request, res: Response) => {
+  try {
+    const posts = await Post.find().populate("author", "username");
     res.json(posts);
   } catch (err) {
-    res.status(500).json({ msg: 'Server Error' });
+    res.status(500).json({ error: "Failed to fetch posts" });
   }
 };
 
-export const getPostById = async (req: Request, res: Response): Promise<void> => {
+export const getPostBySlug = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findById(req.params.id);
-    if (!post) {
-      res.status(404).json({ msg: 'Post not found' });
-      return;
-    }
+    const post = await Post.findOne({ slug: req.params.slug }).populate("author", "username");
+    if (!post) return res.status(404).json({ error: "Post not found" });
     res.json(post);
   } catch (err) {
-    res.status(500).json({ msg: 'Server Error' });
+    res.status(500).json({ error: "Error retrieving post" });
   }
 };
 
-export const createPost = async (req: Request, res: Response): Promise<void> => {
+export const updatePost = async (req: Request, res: Response) => {
   try {
-    const { title, content, author } = req.body;
-    const post = new Post({ title, content, author });
-    await post.save();
-    res.status(201).json(post);
-  } catch (err) {
-    res.status(400).json({ msg: 'Invalid Data' });
-  }
-};
-
-export const updatePost = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const updated = await Post.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) {
-      res.status(404).json({ msg: 'Post not found' });
-      return;
+    const updates = req.body;
+    if (updates.title) updates.slug = slugify(updates.title);
+    if (updates.content) {
+      updates.htmlContent = await markdownToHtml(updates.content);
+      updates.readTime = calculateReadTime(updates.content);
     }
-    res.json(updated);
+    const post = await Post.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    res.json(post);
   } catch (err) {
-    res.status(400).json({ msg: 'Update Failed' });
+    res.status(500).json({ error: "Failed to update post" });
   }
 };
 
-export const deletePost = async (req: Request, res: Response): Promise<void> => {
+export const deletePost = async (req: Request, res: Response) => {
   try {
-    const deleted = await Post.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      res.status(404).json({ msg: 'Post not found' });
-      return;
-    }
-    res.json({ msg: 'Post deleted' });
+    const post = await Post.findByIdAndDelete(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    res.json({ message: "Post deleted successfully" });
   } catch (err) {
-    res.status(500).json({ msg: 'Server Error' });
+    res.status(500).json({ error: "Failed to delete post" });
   }
 };
