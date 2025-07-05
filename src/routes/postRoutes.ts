@@ -7,8 +7,20 @@ import {
   deletePost,
 } from "../controllers/postController";
 import { verifyToken, isAdmin } from "../middlewares/authMiddleware";
-
+import upload from '../middlewares/upload';
 const router = express.Router();
+
+router.post(
+  '/',
+  verifyToken,
+  isAdmin,
+  upload.single('coverImage'), // key must match your form field
+  async (req, res) => {
+    const imageUrl = req.file?.path; // Cloudinary auto-injects this
+    req.body.coverImage = imageUrl;
+    await createPost(req, res);
+  }
+);
 
 router.post("/", verifyToken, isAdmin, (req, res) => {
   createPost(req, res).then().catch(err => console.error(err));
