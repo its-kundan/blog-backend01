@@ -43,7 +43,7 @@ npm install
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/blog
+MONGODB_URI=uri
 JWT_SECRET=your_secret_key
 CLOUDINARY_CLOUD_NAME=your_cloud
 CLOUDINARY_API_KEY=your_key
