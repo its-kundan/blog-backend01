@@ -14,7 +14,7 @@ if (fs.existsSync(envPath)) {
   console.warn('⚠️  .env file not found. Using default development values.');
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/blog-dev';
 
 mongoose.connect(MONGO_URI)
